@@ -104,6 +104,9 @@ vocabularies) and the **migration incompatibilities** to know about (casting can
 ftrack; statuses must be mapped; Kitsu projects need `remove_project` to delete; heavy publish *bytes* stay
 on storage — only references carry).
 
+🧪 **See [`TESTING.md`](TESTING.md)** for how these servers are validated — live round-trip tests, two-level
+dry-run checks, and the cross-tracker migration matrix (including what is *not* yet covered, stated plainly).
+
 Because all three speak the same production model (Project → Sequence/Asset → Shot → Task → Version/Status)
 and present a uniform tool surface, **an agent with two of them loaded can migrate a project from one
 platform to another** — read the structure from the source tracker, map the schema, and recreate it in the
