@@ -82,6 +82,18 @@ def delete(model: str, id: str, dry_run: bool = False) -> dict:
     return {"ok": True, "deleted": {"model": model, "id": id}}
 
 
+def remove_project(project_id: str, dry_run: bool = False) -> dict:
+    """Delete a project. Kitsu only deletes a project once it is **closed**, and its content must be
+    removed with force — this does both (close → force-remove). Irreversible.
+    (The generic `delete` can't delete a populated project for this reason.) dry_run previews."""
+    if dry_run:
+        return {"dry_run": True, "would": "close + force-delete project", "project_id": project_id}
+    k = kitsu()
+    k.project.close_project(project_id)
+    k.project.remove_project(project_id, force=True)
+    return {"ok": True, "removed_project": project_id}
+
+
 # =====================================================================================
 #  SCHEMA / DISCOVERY  (Kitsu is configurable — let the agent learn the site first)
 # =====================================================================================
@@ -209,7 +221,7 @@ def whoami() -> dict:
 
 
 # ---- register every function above as an MCP tool -----------------------------------------
-for _fn in (get, create, update, delete,
+for _fn in (get, create, update, delete, remove_project,
             list_projects, list_asset_types, list_task_types, list_task_statuses,
             list_departments, list_metadata_descriptors,
             list_assets, list_shots, list_sequences, list_tasks,
