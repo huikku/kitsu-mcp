@@ -1,5 +1,7 @@
 # Kitsu MCP server
 
+![Connect any AI agent to Kitsu](assets/hero.png)
+
 A **Model Context Protocol** server that gives LLM agents (Claude Desktop, Claude Code, Cursor, …) access to
 **[Kitsu](https://www.cg-wire.com/kitsu)** — CGWire's open-source production tracker — through its **Zou** API
 and the official **[Gazu](https://github.com/cgwire/gazu)** SDK.

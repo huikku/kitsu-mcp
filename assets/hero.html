@@ -1,0 +1,37 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Geist+Mono:wght@400..700&family=Instrument+Sans:wght@400..700&display=swap');
+:root{--bg:#131417;--line:#262A30;--ink:#F2EEE6;--sub:#B9BCC2;--muted:#7C828C;--r1:#E9A14B;--accent:#56B8C0;
+--font-display:"Bricolage Grotesque",sans-serif;--font-body:"Instrument Sans",system-ui,sans-serif;--font-mono:"Geist Mono",ui-monospace,monospace}
+*{margin:0;padding:0;box-sizing:border-box}html,body{width:1200px;height:630px}
+body{font-family:var(--font-body);background:var(--bg);color:var(--ink);overflow:hidden}
+.card{position:relative;width:1200px;height:630px;padding:62px 70px;display:flex;flex-direction:column}
+.card::before{content:"";position:absolute;inset:0;opacity:.5;background-image:linear-gradient(90deg,rgba(255,255,255,.026) 1px,transparent 1px);background-size:150px 100%}
+.card::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(660px 420px at 90% -8%,rgba(233,161,75,.13),transparent 60%)}
+.layer{position:relative;z-index:1;display:flex;flex-direction:column;height:100%}
+.eyebrow{font-family:var(--font-mono);font-size:17px;font-weight:700;letter-spacing:6px;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--font-display);margin-top:18px;font-size:74px;line-height:.98;font-weight:800;letter-spacing:-.025em;color:var(--ink)}
+h1 .acc{color:var(--r1)}
+.sub{margin-top:22px;font-size:24px;line-height:1.45;color:var(--sub);max-width:760px}
+.stat{margin-top:30px;display:flex;align-items:baseline;gap:15px}
+.stat .n{font-family:var(--font-mono);font-weight:700;font-size:60px;color:var(--r1);line-height:1}
+.stat .l{font-family:var(--font-mono);font-size:17px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+.spacer{flex:1}
+.chips{display:flex;gap:11px}
+.chip{font-family:var(--font-mono);font-size:16px;font-weight:700;color:#eee8dd;padding:8px 16px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.foot{margin-top:24px;display:flex;align-items:flex-end;justify-content:space-between}
+.foot .src{font-family:var(--font-mono);font-size:15px;color:var(--muted);line-height:1.7}.foot .src b{color:var(--sub)}
+.brand{text-align:right}.brand .name{font-size:22px;font-weight:800;color:var(--ink)}.brand .tag{font-family:var(--font-mono);margin-top:5px;font-size:13px;letter-spacing:4px;color:var(--muted)}
+</style></head><body><div class="card"><div class="layer">
+  <div class="eyebrow">MCP Server · Open Source</div>
+  <h1>Connect any AI&nbsp;agent<br>to <span class="acc">Kitsu</span>.</h1>
+  <p class="sub">An MCP server for Kitsu (CGWire) via the Zou API and the official Gazu SDK — full production coverage.</p>
+  <div class="stat"><div class="n">30</div><div class="l">tools · dry_run-safe</div></div>
+  <div class="spacer"></div>
+  <div class="chips"><span class="chip">Zou · Gazu</span><span class="chip">schema-aware</span><span class="chip">MIT</span></div>
+  <div class="foot">
+    <div class="src">github.com/huikku/<b>kitsu-mcp</b><br>part of the tracker-MCP trio</div>
+    <div class="brand"><div class="name">Alienrobot</div><div class="tag">VFX · PIPELINE · AI</div></div>
+  </div>
+</div></div></body></html>
