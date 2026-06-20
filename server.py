@@ -181,14 +181,25 @@ def new_asset(project_id: str, asset_type: str, name: str, description: str = ""
 
 def new_task(entity_id: str, task_type: str, name: str = "main") -> dict:
     """Create a task on an entity (shot/asset). `task_type` is a task-type **name or id**
-    (names are resolved for you)."""
+    (names are resolved for you). Kitsu **scopes task types by entity type** (e.g. `Concept` exists for
+    both Assets and Concepts), so when a name is ambiguous the one matching this entity is chosen."""
     k = kitsu()
-    tt = task_type
-    if isinstance(task_type, str):
-        tt = next((t for t in k.task.all_task_types()
-                   if task_type in (t.get("id"), t.get("name"))), task_type)
     # gazu needs the full entity (it reads project_id off it), not just an id string
     entity = k.client.fetch_one("entities", entity_id) if isinstance(entity_id, str) else entity_id
+    tt = task_type
+    if isinstance(task_type, str):
+        matches = [t for t in k.task.all_task_types() if task_type in (t.get("id"), t.get("name"))]
+        tt = matches[0] if matches else task_type
+        if len(matches) > 1 and isinstance(entity, dict) and entity.get("entity_type_id"):
+            try:  # an Asset's entity_type_id is its *asset type* (Character/...), so map to the category
+                etid = entity["entity_type_id"]
+                if etid in {a["id"] for a in k.asset.all_asset_types()}:
+                    cat = "Asset"
+                else:
+                    cat = (k.client.fetch_one("entity-types", etid) or {}).get("name")
+                tt = next((t for t in matches if t.get("for_entity") == cat), matches[0])
+            except Exception:
+                pass
     return k.task.new_task(entity, tt, name=name)
 
 
@@ -208,6 +219,15 @@ def set_task_status(task_id: str, status: str, comment: str = "") -> dict:
         return {"error": "unknown status %r" % status,
                 "available": [s.get("short_name") for s in statuses]}
     return k.task.add_comment(task_id, st, comment)
+
+
+def set_casting(project_id: str, shot_id: str, asset_ids: list, dry_run: bool = False) -> dict:
+    """Cast assets into a shot (Kitsu breakdown). `asset_ids` = list of asset ids; each gets 1 occurrence.
+    Carries asset→shot casting INTO Kitsu during a migration."""
+    if dry_run:
+        return {"dry_run": True, "would": "set casting", "shot_id": shot_id, "assets": asset_ids}
+    casting = [{"asset_id": a, "nb_occurences": 1, "label": ""} for a in asset_ids]
+    return kitsu().casting.update_shot_casting(project_id, shot_id, casting)
 
 
 # =====================================================================================
@@ -267,7 +287,7 @@ for _fn in (get, create, update, delete, remove_project,
             list_projects, list_asset_types, list_task_types, list_task_statuses,
             list_departments, list_metadata_descriptors,
             list_assets, list_shots, list_sequences, list_tasks,
-            new_project, new_sequence, new_asset, new_shot, new_task, set_task_status,
+            new_project, new_sequence, new_asset, new_shot, new_task, set_task_status, set_casting,
             upload_preview, download_preview, list_previews, whoami):
     mcp.tool(_fn)
 

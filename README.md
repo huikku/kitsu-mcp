@@ -11,7 +11,7 @@ and the official **[Gazu](https://github.com/cgwire/gazu)** SDK.
 
 Part of a small **tracker-MCP trio** — see [Migrating projects between platforms](#migrating-projects-between-platforms).
 
-## The 25 tools
+## The 26 tools
 **Generic power tools (full reach over the Zou REST API):**
 - `get` — GET any Zou route (the escape hatch)
 - `create` · `update` · `delete` — write to any Zou model collection
@@ -29,13 +29,14 @@ Part of a small **tracker-MCP trio** — see [Migrating projects between platfor
 
 **Typed convenience (structure, creation + the review loop):**
 - `list_assets` · `list_shots` · `list_sequences` · `list_tasks`
-- `new_project` · `new_sequence` · `new_asset` · `new_shot` · `new_task` (type names resolved for you)
+- `new_project` · `new_sequence` · `new_asset` · `new_shot` · `new_task` (entity-aware type resolution)
 - `set_task_status` — post a comment that sets a task's status (the Kitsu review loop)
+- `set_casting` — cast assets into a shot (breakdown)
 - `whoami`
 
-> The `new_*` builders make Kitsu a viable **migration target** — read structure from another tracker
-> (e.g. `shotgrid-mcp`) and recreate the project here. See
-> [Migrating projects between platforms](#migrating-projects-between-platforms).
+> The `new_*` + media + `set_casting` tools make Kitsu a viable **migration target** — read structure,
+> statuses, casting, thumbnails and version media from another tracker (e.g. `shotgrid-mcp`) and recreate
+> the project here. See [Migrating projects between platforms](#migrating-projects-between-platforms).
 
 `create`, `update`, `delete` each take `dry_run: bool = false` — set it `true` to preview the write and
 commit nothing.
