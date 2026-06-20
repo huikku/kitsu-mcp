@@ -39,8 +39,16 @@ Part of a small **tracker-MCP trio** — see [Migrating projects between platfor
 > statuses, casting, thumbnails and version media from another tracker (e.g. `shotgrid-mcp`) and recreate
 > the project here. See [Migrating projects between platforms](#migrating-projects-between-platforms).
 
-`create`, `update`, `delete` each take `dry_run: bool = false` — set it `true` to preview the write and
-commit nothing.
+### Dry-run modes
+Every write takes `dry_run` (default `false` = perform the write). `create` / `update` / `delete` /
+`set_task_status` support **two preview levels**:
+- **`dry_run="plan"`** (or `true`) — client-side echo of the intent. No server contact.
+- **`dry_run="preflight"`** — a *real* dry run: resolves every reference against live data, validates
+  (does the parent exist? is the status name valid?), returns a before→after diff for updates, and a
+  `verdict` of `ok` / `would_fail` — **without writing anything**.
+
+Set **`MCP_PLAN_LOG=/path/plan.jsonl`** and every plan/preflight is appended as a line, so a whole
+dry-run migration produces a reviewable plan file. (Other write tools take `dry_run` as a plain boolean.)
 
 ## Install
 ```bash

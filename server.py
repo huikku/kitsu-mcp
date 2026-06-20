@@ -14,7 +14,7 @@ Config (env or MCP client config):
 
 Run:  python3 server.py        (stdio transport, for Claude Desktop / Cursor / Claude Code)
 """
-import os, tempfile, datetime
+import os, tempfile, datetime, json
 import gazu
 from fastmcp import FastMCP
 
@@ -46,6 +46,54 @@ def kitsu():
 
 
 # =====================================================================================
+#  DRY-RUN MODES  (plan = client-side echo, no reads · preflight = real reads, validate, no write)
+# =====================================================================================
+def _mode(dry_run):
+    """Normalize the dry_run argument: False/None -> 'live'; True/'plan' -> 'plan'; 'preflight' -> 'preflight'."""
+    if isinstance(dry_run, str):
+        d = dry_run.lower()
+        return "preflight" if d == "preflight" else ("live" if d in ("", "false", "no") else "plan")
+    return "plan" if dry_run else "live"
+
+
+def _planlog(entry):
+    """Append a plan/preflight entry to the JSONL plan log if MCP_PLAN_LOG is set, and return it."""
+    entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"), **entry}
+    path = os.environ.get("MCP_PLAN_LOG")
+    if path:
+        try:
+            with open(path, "a") as f:
+                f.write(json.dumps(entry) + "\n")
+        except Exception:
+            pass
+    return entry
+
+
+# Zou *_id reference field -> collection it points at (for preflight resolution)
+_REF = {"project_id": "projects", "parent_id": "entities", "entity_id": "entities",
+        "entity_type_id": "entity-types", "sequence_id": "sequences", "episode_id": "episodes",
+        "task_type_id": "task-types", "task_status_id": "task-statuses", "person_id": "persons",
+        "assigner_id": "persons", "asset_id": "assets", "shot_id": "shots", "source_id": "entities",
+        "preview_file_id": "preview-files"}
+
+
+def _resolve_refs(data):
+    """Preflight: for every *_id in `data`, read it from Zou and report found/name. Returns (reads, conflicts)."""
+    reads, conflicts = {}, []
+    for k, v in (data or {}).items():
+        if k.endswith("_id") and isinstance(v, str) and k in _REF:
+            try:
+                ent = kitsu().client.fetch_one(_REF[k], v)
+                reads[k] = {"found": bool(ent), "name": (ent or {}).get("name")}
+                if not ent:
+                    conflicts.append("%s %s not found in %s" % (k, v, _REF[k]))
+            except Exception as e:
+                reads[k] = {"found": False, "error": repr(e)[:80]}
+                conflicts.append("%s %s not found in %s" % (k, v, _REF[k]))
+    return reads, conflicts
+
+
+# =====================================================================================
 #  GENERIC POWER TOOLS  (one write family — full reach over the Zou REST API)
 # =====================================================================================
 def get(path: str) -> object:
@@ -55,29 +103,66 @@ def get(path: str) -> object:
     return kitsu().client.get(path)
 
 
-def create(model: str, data: dict, dry_run: bool = False) -> dict:
+def create(model: str, data: dict, dry_run=False) -> dict:
     """Create an entity in any Zou model collection. `model` is the collection
     (e.g. "assets","shots","sequences","tasks","persons","comments"); `data` is the JSON payload
     (use ids for links, e.g. {"project_id":"...","name":"..."}).
-    Set `dry_run=true` to preview the write without committing."""
-    if dry_run:
-        return {"dry_run": True, "would": "create", "model": model, "data": data}
+    `dry_run`: false = write · "plan"/true = echo the intent (no server contact) ·
+    "preflight" = resolve every reference against live data and report whether it would land (no write).
+    With MCP_PLAN_LOG set, each plan/preflight is appended to that JSONL file."""
+    mode = _mode(dry_run)
+    if mode == "plan":
+        return _planlog({"dry_run": "plan", "would": "create", "model": model, "input": data})
+    if mode == "preflight":
+        reads, conflicts = _resolve_refs(data)
+        return _planlog({"dry_run": "preflight", "would": "create", "model": model, "input": data,
+                         "reads": reads, "conflicts": conflicts,
+                         "verdict": "would_fail" if conflicts else "ok"})
     return kitsu().client.create(model, data)
 
 
-def update(model: str, id: str, data: dict, dry_run: bool = False) -> dict:
+def update(model: str, id: str, data: dict, dry_run=False) -> dict:
     """Update an entity by id in a Zou model collection. `data` = fields to set.
-    Set `dry_run=true` to preview without committing."""
-    if dry_run:
-        return {"dry_run": True, "would": "update", "model": model, "id": id, "data": data}
+    `dry_run`: false = write · "plan"/true = echo · "preflight" = read the current entity and return a real
+    before→after diff (no write). With MCP_PLAN_LOG set, each plan/preflight is logged."""
+    mode = _mode(dry_run)
+    if mode == "plan":
+        return _planlog({"dry_run": "plan", "would": "update", "model": model, "id": id, "input": data})
+    if mode == "preflight":
+        cur = None
+        try:
+            cur = kitsu().client.fetch_one(model, id)
+        except Exception:
+            pass
+        reads, conflicts = _resolve_refs(data)
+        if not cur:
+            conflicts.append("%s %s not found" % (model, id))
+        change = {k: {"from": (cur or {}).get(k), "to": v} for k, v in (data or {}).items()}
+        return _planlog({"dry_run": "preflight", "would": "update", "model": model, "id": id,
+                         "exists": bool(cur), "change": change, "reads": reads, "conflicts": conflicts,
+                         "verdict": "would_fail" if conflicts else "ok"})
     return kitsu().client.update(model, id, data)
 
 
-def delete(model: str, id: str, dry_run: bool = False) -> dict:
+def delete(model: str, id: str, dry_run=False) -> dict:
     """Delete an entity by id from a Zou model collection.
-    Set `dry_run=true` to preview without committing."""
-    if dry_run:
-        return {"dry_run": True, "would": "delete", "model": model, "id": id}
+    `dry_run`: false = delete · "plan"/true = echo · "preflight" = confirm the target exists (live read) and
+    show what would be removed (no write). With MCP_PLAN_LOG set, each plan/preflight is logged."""
+    mode = _mode(dry_run)
+    if mode == "plan":
+        return _planlog({"dry_run": "plan", "would": "delete", "model": model, "id": id})
+    if mode == "preflight":
+        cur = None
+        try:
+            cur = kitsu().client.fetch_one(model, id)
+        except Exception:
+            pass
+        conflicts = [] if cur else ["%s %s not found" % (model, id)]
+        note = ("Kitsu only deletes a CLOSED project, with force — use remove_project"
+                if model == "projects" else None)
+        return _planlog({"dry_run": "preflight", "would": "delete", "model": model, "id": id,
+                         "exists": bool(cur), "name": (cur or {}).get("name"), "note": note,
+                         "conflicts": conflicts, "verdict": "would_fail" if conflicts else "ok"})
     kitsu().client.delete("data/%s/%s" % (model, id))
     return {"ok": True, "deleted": {"model": model, "id": id}}
 
@@ -220,16 +305,33 @@ def new_shot(project_id: str, sequence_id: str, name: str, nb_frames: int = None
     return kitsu().shot.new_shot(project_id, sequence_id, name, nb_frames=nb_frames)
 
 
-def set_task_status(task_id: str, status: str, comment: str = "", dry_run: bool = False) -> dict:
+def set_task_status(task_id: str, status: str, comment: str = "", dry_run=False) -> dict:
     """Set a task's status by posting a comment — the Kitsu review loop. `status` is a status
     name or short_name (e.g. "wip","done","retake","wfa"); `comment` is optional text.
-    `dry_run=true` previews without committing."""
-    if dry_run:
-        return {"dry_run": True, "would": "set task status", "task_id": task_id, "status": status}
+    `dry_run`: false = write · "plan"/true = echo · "preflight" = read the task + validate the status name
+    against the live schema and show the current→new status (no write). Logged to MCP_PLAN_LOG if set."""
+    mode = _mode(dry_run)
+    if mode == "plan":
+        return _planlog({"dry_run": "plan", "would": "set_task_status", "task_id": task_id, "status": status})
     k = kitsu()
     statuses = k.task.all_task_statuses()
     st = next((s for s in statuses
                if status.lower() in (s.get("short_name", "").lower(), s.get("name", "").lower())), None)
+    if mode == "preflight":
+        task = None
+        try:
+            task = k.client.fetch_one("tasks", task_id)
+        except Exception:
+            pass
+        cur = next((s["short_name"] for s in statuses if s["id"] == (task or {}).get("task_status_id")), None)
+        conflicts = []
+        if not task:
+            conflicts.append("task %s not found" % task_id)
+        if st is None:
+            conflicts.append("status %r not valid (have: %s)" % (status, [s["short_name"] for s in statuses]))
+        return _planlog({"dry_run": "preflight", "would": "set_task_status", "task_id": task_id,
+                         "exists": bool(task), "change": {"status": "%s → %s" % (cur, st["short_name"] if st else status)},
+                         "conflicts": conflicts, "verdict": "would_fail" if conflicts else "ok"})
     if st is None:
         return {"error": "unknown status %r" % status,
                 "available": [s.get("short_name") for s in statuses]}
