@@ -4,12 +4,13 @@ A **Model Context Protocol** server that gives LLM agents (Claude Desktop, Claud
 **[Kitsu](https://www.cg-wire.com/kitsu)** — CGWire's open-source production tracker — through its **Zou** API
 and the official **[Gazu](https://github.com/cgwire/gazu)** SDK.
 
-> **18 tools, one write family, a `dry_run` safety gate on every write.** Tested live against a self-hosted
-> Kitsu with a real project (81 assets / 422 shots / 8 sequences).
+> **21 tools, one write family, a `dry_run` safety gate on every write.** Tested live against a self-hosted
+> Kitsu — including a full **ShotGrid → Kitsu migration** (new project + sequence + shots + assets + tasks,
+> verified and cleaned up).
 
 Part of a small **tracker-MCP trio** — see [Migrating projects between platforms](#migrating-projects-between-platforms).
 
-## The 18 tools
+## The 21 tools
 **Generic power tools (full reach over the Zou REST API):**
 - `get` — GET any Zou route (the escape hatch)
 - `create` · `update` · `delete` — write to any Zou model collection
@@ -19,11 +20,15 @@ Part of a small **tracker-MCP trio** — see [Migrating projects between platfor
 - `list_asset_types` · `list_task_types` · `list_task_statuses` (with workflow flags) · `list_departments`
 - `list_metadata_descriptors` — Kitsu's **schema-as-data** custom fields (`for_client` + per-department)
 
-**Typed convenience (structure + the review loop):**
+**Typed convenience (structure, creation + the review loop):**
 - `list_assets` · `list_shots` · `list_sequences` · `list_tasks`
-- `new_asset` · `new_shot`
+- `new_project` · `new_sequence` · `new_asset` · `new_shot` · `new_task` (type names resolved for you)
 - `set_task_status` — post a comment that sets a task's status (the Kitsu review loop)
 - `whoami`
+
+> The `new_*` builders make Kitsu a viable **migration target** — read structure from another tracker
+> (e.g. `shotgrid-mcp`) and recreate the project here. See
+> [Migrating projects between platforms](#migrating-projects-between-platforms).
 
 `create`, `update`, `delete` each take `dry_run: bool = false` — set it `true` to preview the write and
 commit nothing.

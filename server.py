@@ -143,6 +143,20 @@ def list_tasks(entity_id: str) -> list:
     return kitsu().client.fetch_all("tasks", {"entity_id": entity_id})
 
 
+def new_project(name: str, dry_run: bool = False) -> dict:
+    """Create a project."""
+    if dry_run:
+        return {"dry_run": True, "would": "create project", "name": name}
+    return kitsu().project.new_project(name)
+
+
+def new_sequence(project_id: str, name: str, dry_run: bool = False) -> dict:
+    """Create a sequence in a project."""
+    if dry_run:
+        return {"dry_run": True, "would": "create sequence", "project_id": project_id, "name": name}
+    return kitsu().shot.new_sequence(project_id, name)
+
+
 def new_asset(project_id: str, asset_type: str, name: str, description: str = "") -> dict:
     """Create an asset. `asset_type` is an asset-type **name or id** (names are resolved for you)."""
     k = kitsu()
@@ -151,6 +165,19 @@ def new_asset(project_id: str, asset_type: str, name: str, description: str = ""
         at = next((t for t in k.asset.all_asset_types()
                    if asset_type in (t.get("id"), t.get("name"))), asset_type)
     return k.asset.new_asset(project_id, at, name, description=description)
+
+
+def new_task(entity_id: str, task_type: str, name: str = "main") -> dict:
+    """Create a task on an entity (shot/asset). `task_type` is a task-type **name or id**
+    (names are resolved for you)."""
+    k = kitsu()
+    tt = task_type
+    if isinstance(task_type, str):
+        tt = next((t for t in k.task.all_task_types()
+                   if task_type in (t.get("id"), t.get("name"))), task_type)
+    # gazu needs the full entity (it reads project_id off it), not just an id string
+    entity = k.client.fetch_one("entities", entity_id) if isinstance(entity_id, str) else entity_id
+    return k.task.new_task(entity, tt, name=name)
 
 
 def new_shot(project_id: str, sequence_id: str, name: str, nb_frames: int = None) -> dict:
@@ -186,7 +213,7 @@ for _fn in (get, create, update, delete,
             list_projects, list_asset_types, list_task_types, list_task_statuses,
             list_departments, list_metadata_descriptors,
             list_assets, list_shots, list_sequences, list_tasks,
-            new_asset, new_shot, set_task_status, whoami):
+            new_project, new_sequence, new_asset, new_shot, new_task, set_task_status, whoami):
     mcp.tool(_fn)
 
 
