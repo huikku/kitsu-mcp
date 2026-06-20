@@ -75,25 +75,26 @@ Each platform ships a different status set, so migration has to translate. The m
 | Task **statuses** (mapped per §3) | ✅ (lossy into ftrack, per above) |
 | **Casting** (asset→shot) | ✅ SG ↔ Kitsu; ❌ via ftrack (no casting model) |
 | Frame ranges / cut durations | ✅ (where the field exists) |
-| **Thumbnails** (entity images) | ✅ SG → Kitsu (downloaded from source host → uploaded to target); ftrack via `set_thumbnail` |
-| **Versions** (review media) | ✅ SG → Kitsu (image media onto a task as a preview); ftrack AssetVersion+Component not yet |
-| **Preview *movies*, multiple versions** | ✅ **proven Kitsu ↔ SG** — real video plates, 3 versions on one task, each transcoded to a playable movie on both sides |
+| **Thumbnails** (entity images) | ✅ SG → Kitsu; **ftrack** via `set_thumbnail` (extracted frame) |
+| **Versions** (review media) | ✅ SG → Kitsu (preview on a task); **ftrack** via `encode_media` → `ftrackreview-mp4` |
+| **Preview *movies*, multiple versions** | ✅ proven **Kitsu ↔ SG** and **→ ftrack** — real video plates, multiple versions on one task/asset, transcoded on the target |
 | **Notes / comments** | ✅ SG → Kitsu (note → task comment) |
-| **Publishes** (PublishedFile, paths/deps) | ⚠️ buildable, **no published-file test data yet** |
-| **Custom fields / metadata-descriptors** | ❌ not yet |
-| **Time logs** | ❌ not yet |
+| **Custom fields** (sg_* / custom-attrs / metadata-descriptors) | ✅ SG → Kitsu (define descriptors + set values) |
+| **Time logs** | ✅ Kitsu `log_time` / ftrack `log_time` (Kitsu requires the person be assigned to the task) |
+| **Publishes** (PublishedFile + paths + deps) | ✅ **references** carry (path / version / type / **dependency chain**); ⚠️ **heavy bytes stay on storage** |
 
 > **How media moves:** there is no shared storage — a thumbnail/version/movie is **downloaded from the
 > source tracker's host and re-uploaded to the target's host** (`download_thumbnail`/`download_preview` →
-> `upload`/`upload_preview`), with the target transcoding as needed. Thumbnails, preview images and **video
-> movies (multiple versions per task)** round-trip this way. **Heavy publishes** (EXRs, caches, scene files)
-> live on studio storage referenced by path/URL — migrating those means copying file *references* (or bytes
-> over a reachable mount), a storage decision per deployment.
+> `upload`/`upload_preview`/`upload_review_media`), with the target transcoding as needed (Kitsu and ftrack
+> both produce a web-playable movie). **Heavy publishes** (EXRs, caches, scene files) live on studio storage
+> referenced by path/URL — migration carries the **reference** (path + version + dependency chain); copying
+> the bytes is a separate storage decision per deployment (copy over a reachable mount, or re-point paths).
 >
-> **Proven (verified by read-back):** SG → Kitsu carries structure + statuses + casting + thumbnails +
-> version media + notes; **Kitsu → SG carries multi-version video** (real plates, transcoded both sides), on
-> representative *slices* (not yet full-scale runs). The ftrack edges carry structure + statuses today;
-> ftrack **version media** (Component encoding) and **publishes** are the next build.
+> **Proven (verified by read-back), on representative *slices* (not yet full-scale runs):** SG ↔ Kitsu
+> carries structure + statuses + casting + thumbnails + **multi-version video** + notes + custom fields;
+> **ftrack** carries structure + statuses + thumbnails + **video version media** (`encode_media`);
+> **publishes** carry as references with the dependency chain preserved. Remaining: ftrack ⇄ casting (no
+> model), custom-fields/time-logs on the ftrack edges, and full-scale (hundreds-of-shots) runs.
 
 ---
 *Part of the tracker-MCP trio: [shotgrid-mcp](https://github.com/huikku/shotgrid-mcp) ·
