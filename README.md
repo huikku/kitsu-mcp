@@ -80,6 +80,11 @@ typed convenience, with a `dry_run` gate):
 | ftrack Studio | [`huikku/ftrack-mcp`](https://github.com/huikku/ftrack-mcp) |
 | **Kitsu (CGWire)** | this repo |
 
+📊 **See [`COMPARISON.md`](COMPARISON.md)** for a side-by-side of the three trackers (data model, status
+vocabularies) and the **migration incompatibilities** to know about (casting can't round-trip through
+ftrack; statuses must be mapped; Kitsu projects need `remove_project` to delete; media/notes/custom fields
+don't carry yet).
+
 Because all three speak the same production model (Project → Sequence/Asset → Shot → Task → Version/Status)
 and present a uniform tool surface, **an agent with two of them loaded can migrate a project from one
 platform to another** — read the structure from the source tracker, map the schema, and recreate it in the
