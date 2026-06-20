@@ -4,17 +4,23 @@ A **Model Context Protocol** server that gives LLM agents (Claude Desktop, Claud
 **[Kitsu](https://www.cg-wire.com/kitsu)** — CGWire's open-source production tracker — through its **Zou** API
 and the official **[Gazu](https://github.com/cgwire/gazu)** SDK.
 
-> **22 tools, one write family, a `dry_run` safety gate on every write.** Tested live against a self-hosted
-> Kitsu — including full **ShotGrid → Kitsu** and **ftrack → Kitsu** migrations (new project + sequence +
-> shots + assets + tasks), verified by read-back and torn down with `remove_project`.
+> **25 tools, one write family, a `dry_run` safety gate on every write.** Tested live against a self-hosted
+> Kitsu — including full **ShotGrid → Kitsu** and **ftrack → Kitsu** migrations (project + sequences + shots
+> + assets + tasks + statuses + casting + **thumbnails/version media**), verified by read-back and torn down
+> with `remove_project`.
 
 Part of a small **tracker-MCP trio** — see [Migrating projects between platforms](#migrating-projects-between-platforms).
 
-## The 22 tools
+## The 25 tools
 **Generic power tools (full reach over the Zou REST API):**
 - `get` — GET any Zou route (the escape hatch)
 - `create` · `update` · `delete` — write to any Zou model collection
 - `remove_project` — delete a project (Kitsu requires close→force; the generic `delete` can't)
+
+**Media / versions (a "version" = a preview file on a task; thumbnails derive from previews):**
+- `upload_preview` — upload an image/movie as a version on a task (+ optionally set the entity thumbnail)
+- `download_preview` — pull a preview's media (image or movie) to disk
+- `list_previews` — versions on a task
 
 **Schema & discovery (Kitsu is configurable — learn the site first):**
 - `list_projects`

@@ -14,7 +14,7 @@ Config (env or MCP client config):
 
 Run:  python3 server.py        (stdio transport, for Claude Desktop / Cursor / Claude Code)
 """
-import os
+import os, tempfile
 import gazu
 from fastmcp import FastMCP
 
@@ -210,6 +210,48 @@ def set_task_status(task_id: str, status: str, comment: str = "") -> dict:
     return k.task.add_comment(task_id, st, comment)
 
 
+# =====================================================================================
+#  MEDIA / VERSIONS  (in Kitsu a "version" = a preview file [image/movie] on a task;
+#  an entity's thumbnail derives from a preview. These carry media in/out for migrations.)
+# =====================================================================================
+def _status_id(status):
+    for s in kitsu().task.all_task_statuses():
+        if status and status.lower() in (s.get("short_name", "").lower(), s.get("name", "").lower()):
+            return s["id"]
+    return None
+
+
+def upload_preview(task_id: str, file_path: str, comment: str = "", status: str = None,
+                   set_thumbnail: bool = True, dry_run: bool = False) -> dict:
+    """Upload a media file (image or movie) as a new **version/preview** on a task — the Kitsu review unit.
+    `set_thumbnail=true` also makes it the linked entity's thumbnail. `status` is a task status name
+    (default: keep the task's current status). Use this to carry media INTO Kitsu during a migration."""
+    if dry_run:
+        return {"dry_run": True, "would": "upload preview", "task_id": task_id, "file": file_path,
+                "set_thumbnail": set_thumbnail}
+    k = kitsu()
+    st = _status_id(status) if status else (k.client.fetch_one("tasks", task_id) or {}).get("task_status_id")
+    comment_obj, preview = k.task.publish_preview(
+        task_id, st, comment=comment, preview_file_path=file_path, set_thumbnail=set_thumbnail)
+    return {"ok": True, "preview_file_id": preview.get("id"), "task_id": task_id,
+            "set_thumbnail": set_thumbnail}
+
+
+def download_preview(preview_file_id: str, path: str = None, movie: bool = False) -> dict:
+    """Download a preview file's media to disk (image by default; `movie=true` for the movie).
+    Use this to read media OUT of Kitsu during a migration. Returns the saved path."""
+    k = kitsu()
+    if not path:
+        fd, path = tempfile.mkstemp(suffix=".mp4" if movie else ".png"); os.close(fd)
+    (k.files.download_preview_movie if movie else k.files.download_preview_file)(preview_file_id, path)
+    return {"ok": True, "path": path, "bytes": os.path.getsize(path)}
+
+
+def list_previews(task_id: str) -> list:
+    """List the preview files (versions) on a task, newest first."""
+    return kitsu().task.all_previews_for_task(task_id)
+
+
 def whoami() -> dict:
     """The authenticated Kitsu user + host (validates the connection)."""
     k = kitsu()
@@ -225,7 +267,8 @@ for _fn in (get, create, update, delete, remove_project,
             list_projects, list_asset_types, list_task_types, list_task_statuses,
             list_departments, list_metadata_descriptors,
             list_assets, list_shots, list_sequences, list_tasks,
-            new_project, new_sequence, new_asset, new_shot, new_task, set_task_status, whoami):
+            new_project, new_sequence, new_asset, new_shot, new_task, set_task_status,
+            upload_preview, download_preview, list_previews, whoami):
     mcp.tool(_fn)
 
 
