@@ -169,8 +169,13 @@ def new_sequence(project_id: str, name: str, dry_run: bool = False) -> dict:
     return kitsu().shot.new_sequence(project_id, name)
 
 
-def new_asset(project_id: str, asset_type: str, name: str, description: str = "") -> dict:
-    """Create an asset. `asset_type` is an asset-type **name or id** (names are resolved for you)."""
+def new_asset(project_id: str, asset_type: str, name: str, description: str = "",
+              dry_run: bool = False) -> dict:
+    """Create an asset. `asset_type` is an asset-type **name or id** (names are resolved for you).
+    `dry_run=true` previews without committing."""
+    if dry_run:
+        return {"dry_run": True, "would": "create asset", "project_id": project_id,
+                "asset_type": asset_type, "name": name}
     k = kitsu()
     at = asset_type
     if isinstance(asset_type, str):
@@ -179,10 +184,13 @@ def new_asset(project_id: str, asset_type: str, name: str, description: str = ""
     return k.asset.new_asset(project_id, at, name, description=description)
 
 
-def new_task(entity_id: str, task_type: str, name: str = "main") -> dict:
+def new_task(entity_id: str, task_type: str, name: str = "main", dry_run: bool = False) -> dict:
     """Create a task on an entity (shot/asset). `task_type` is a task-type **name or id**
     (names are resolved for you). Kitsu **scopes task types by entity type** (e.g. `Concept` exists for
-    both Assets and Concepts), so when a name is ambiguous the one matching this entity is chosen."""
+    both Assets and Concepts), so when a name is ambiguous the one matching this entity is chosen.
+    `dry_run=true` previews without committing."""
+    if dry_run:
+        return {"dry_run": True, "would": "create task", "entity_id": entity_id, "task_type": task_type}
     k = kitsu()
     # gazu needs the full entity (it reads project_id off it), not just an id string
     entity = k.client.fetch_one("entities", entity_id) if isinstance(entity_id, str) else entity_id
@@ -203,14 +211,21 @@ def new_task(entity_id: str, task_type: str, name: str = "main") -> dict:
     return k.task.new_task(entity, tt, name=name)
 
 
-def new_shot(project_id: str, sequence_id: str, name: str, nb_frames: int = None) -> dict:
-    """Create a shot under a sequence."""
+def new_shot(project_id: str, sequence_id: str, name: str, nb_frames: int = None,
+             dry_run: bool = False) -> dict:
+    """Create a shot under a sequence. `dry_run=true` previews without committing."""
+    if dry_run:
+        return {"dry_run": True, "would": "create shot", "project_id": project_id,
+                "sequence_id": sequence_id, "name": name}
     return kitsu().shot.new_shot(project_id, sequence_id, name, nb_frames=nb_frames)
 
 
-def set_task_status(task_id: str, status: str, comment: str = "") -> dict:
+def set_task_status(task_id: str, status: str, comment: str = "", dry_run: bool = False) -> dict:
     """Set a task's status by posting a comment — the Kitsu review loop. `status` is a status
-    name or short_name (e.g. "wip","done","retake","wfa"); `comment` is optional text."""
+    name or short_name (e.g. "wip","done","retake","wfa"); `comment` is optional text.
+    `dry_run=true` previews without committing."""
+    if dry_run:
+        return {"dry_run": True, "would": "set task status", "task_id": task_id, "status": status}
     k = kitsu()
     statuses = k.task.all_task_statuses()
     st = next((s for s in statuses
