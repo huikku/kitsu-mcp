@@ -4,14 +4,14 @@ A **Model Context Protocol** server that gives LLM agents (Claude Desktop, Claud
 **[Kitsu](https://www.cg-wire.com/kitsu)** — CGWire's open-source production tracker — through its **Zou** API
 and the official **[Gazu](https://github.com/cgwire/gazu)** SDK.
 
-> **25 tools, one write family, a `dry_run` safety gate on every write.** Tested live against a self-hosted
-> Kitsu — including full **ShotGrid → Kitsu** and **ftrack → Kitsu** migrations (project + sequences + shots
-> + assets + tasks + statuses + casting + **thumbnails/version media**), verified by read-back and torn down
-> with `remove_project`.
+> **29 tools, one write family, a `dry_run` safety gate on every write.** Tested live against a self-hosted
+> Kitsu — including **whole-project** ShotGrid ↔ Kitsu and ftrack → Kitsu migrations carrying structure +
+> statuses + casting + thumbnails + **video version media (multiple versions)** + notes + **custom fields**,
+> verified by read-back and torn down with `remove_project`.
 
 Part of a small **tracker-MCP trio** — see [Migrating projects between platforms](#migrating-projects-between-platforms).
 
-## The 28 tools
+## The 29 tools
 **Generic power tools (full reach over the Zou REST API):**
 - `get` — GET any Zou route (the escape hatch)
 - `create` · `update` · `delete` — write to any Zou model collection
@@ -21,6 +21,7 @@ Part of a small **tracker-MCP trio** — see [Migrating projects between platfor
 - `upload_preview` — upload an image/movie as a version on a task (+ optionally set the entity thumbnail)
 - `download_preview` — pull a preview's media (image or movie) to disk
 - `list_previews` — versions on a task
+- `log_time` — log time on a task (the person must be assigned to it — a Kitsu rule)
 
 **Schema & discovery (Kitsu is configurable — learn the site first):**
 - `list_projects`
@@ -89,8 +90,8 @@ typed convenience, with a `dry_run` gate):
 
 📊 **See [`COMPARISON.md`](COMPARISON.md)** for a side-by-side of the three trackers (data model, status
 vocabularies) and the **migration incompatibilities** to know about (casting can't round-trip through
-ftrack; statuses must be mapped; Kitsu projects need `remove_project` to delete; media/notes/custom fields
-don't carry yet).
+ftrack; statuses must be mapped; Kitsu projects need `remove_project` to delete; heavy publish *bytes* stay
+on storage — only references carry).
 
 Because all three speak the same production model (Project → Sequence/Asset → Shot → Task → Version/Status)
 and present a uniform tool surface, **an agent with two of them loaded can migrate a project from one

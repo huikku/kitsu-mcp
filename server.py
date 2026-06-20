@@ -14,7 +14,7 @@ Config (env or MCP client config):
 
 Run:  python3 server.py        (stdio transport, for Claude Desktop / Cursor / Claude Code)
 """
-import os, tempfile
+import os, tempfile, datetime
 import gazu
 from fastmcp import FastMCP
 
@@ -297,6 +297,17 @@ def list_previews(task_id: str) -> list:
     return kitsu().task.all_previews_for_task(task_id)
 
 
+def log_time(task_id: str, duration: int, date: str = None, person_id: str = None,
+             dry_run: bool = False) -> dict:
+    """Log time (a time-spent) on a task. `duration` is in **minutes**; `date` defaults to today
+    (YYYY-MM-DD); `person_id` defaults to the connected user. Carries time logs INTO Kitsu."""
+    if dry_run:
+        return {"dry_run": True, "would": "log time", "task_id": task_id, "minutes": duration}
+    k = kitsu()
+    person = person_id or (k.client.get_current_user() or {}).get("id")
+    return k.task.add_time_spent(task_id, person, date or datetime.date.today().isoformat(), duration)
+
+
 def whoami() -> dict:
     """The authenticated Kitsu user + host (validates the connection)."""
     k = kitsu()
@@ -314,7 +325,7 @@ for _fn in (get, create, update, delete, remove_project,
             list_assets, list_shots, list_sequences, list_tasks,
             new_project, new_sequence, new_asset, new_shot, new_task, set_task_status, set_casting,
             add_metadata_descriptor, set_metadata,
-            upload_preview, download_preview, list_previews, whoami):
+            upload_preview, download_preview, list_previews, log_time, whoami):
     mcp.tool(_fn)
 
 
