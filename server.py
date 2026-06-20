@@ -1,0 +1,194 @@
+#!/usr/bin/env python3
+"""Kitsu (CGWire) MCP server — coverage of the Zou API via Gazu, for LLM agents.
+
+Design: Kitsu's **Zou** API is REST over a clear production model, reached through the official **Gazu**
+SDK. A few **generic power tools** (`get` / `create` / `update` / `delete` over any Zou route) give full
+reach, plus **typed convenience** (projects, assets, shots, sequences, tasks, status changes) and **schema
+introspection** (asset/task types, statuses, departments, metadata-descriptors = custom fields). One write
+family, a `dry_run` safety gate on every write. MIT licensed.
+
+Config (env or MCP client config):
+  KITSU_URL       e.g. https://your.kitsu.host/api   (note the /api suffix)
+  KITSU_EMAIL     a Kitsu user (a dedicated bot account is recommended)
+  KITSU_PASSWORD  that user's password
+
+Run:  python3 server.py        (stdio transport, for Claude Desktop / Cursor / Claude Code)
+"""
+import os
+import gazu
+from fastmcp import FastMCP
+
+mcp = FastMCP("kitsu")
+_connected = False
+
+
+def _env(name, default=None):
+    v = os.environ.get(name)
+    if v:
+        return v
+    # fall back to a sibling .env (dev convenience) — never required in production
+    for p in (".env",):
+        if os.path.exists(p):
+            for line in open(p):
+                line = line.strip()
+                if line.startswith(name + "="):
+                    return line.split("=", 1)[1].split(" #", 1)[0].strip().strip('"').strip("'")
+    return default
+
+
+def kitsu():
+    global _connected
+    if not _connected:
+        gazu.set_host(_env("KITSU_URL"))
+        gazu.log_in(_env("KITSU_EMAIL"), _env("KITSU_PASSWORD"))
+        _connected = True
+    return gazu
+
+
+# =====================================================================================
+#  GENERIC POWER TOOLS  (one write family — full reach over the Zou REST API)
+# =====================================================================================
+def get(path: str) -> object:
+    """GET any Zou API route and return its JSON — the escape hatch for full reach.
+    e.g. get("data/projects"), get("data/shots/<id>"), get("data/persons"),
+    get("data/projects/<id>/task-types")."""
+    return kitsu().client.get(path)
+
+
+def create(model: str, data: dict, dry_run: bool = False) -> dict:
+    """Create an entity in any Zou model collection. `model` is the collection
+    (e.g. "assets","shots","sequences","tasks","persons","comments"); `data` is the JSON payload
+    (use ids for links, e.g. {"project_id":"...","name":"..."}).
+    Set `dry_run=true` to preview the write without committing."""
+    if dry_run:
+        return {"dry_run": True, "would": "create", "model": model, "data": data}
+    return kitsu().client.create(model, data)
+
+
+def update(model: str, id: str, data: dict, dry_run: bool = False) -> dict:
+    """Update an entity by id in a Zou model collection. `data` = fields to set.
+    Set `dry_run=true` to preview without committing."""
+    if dry_run:
+        return {"dry_run": True, "would": "update", "model": model, "id": id, "data": data}
+    return kitsu().client.update(model, id, data)
+
+
+def delete(model: str, id: str, dry_run: bool = False) -> dict:
+    """Delete an entity by id from a Zou model collection.
+    Set `dry_run=true` to preview without committing."""
+    if dry_run:
+        return {"dry_run": True, "would": "delete", "model": model, "id": id}
+    kitsu().client.delete("data/%s/%s" % (model, id))
+    return {"ok": True, "deleted": {"model": model, "id": id}}
+
+
+# =====================================================================================
+#  SCHEMA / DISCOVERY  (Kitsu is configurable — let the agent learn the site first)
+# =====================================================================================
+def list_projects(include_closed: bool = False) -> list:
+    """List projects (open by default)."""
+    projs = kitsu().project.all_projects()
+    if not include_closed:
+        projs = [p for p in projs if p.get("project_status_name") != "Closed"]
+    return projs
+
+
+def list_asset_types() -> list:
+    """All asset types (Character / Environment / Prop / FX / ...)."""
+    return kitsu().asset.all_asset_types()
+
+
+def list_task_types() -> list:
+    """All task types — the columns of the production matrix (per entity-type)."""
+    return kitsu().task.all_task_types()
+
+
+def list_task_statuses() -> list:
+    """All task statuses with their workflow flags (name, short_name, color, is_done, is_wip,
+    is_retake, is_feedback_request, for_client, ...)."""
+    return kitsu().task.all_task_statuses()
+
+
+def list_departments() -> list:
+    """All departments (disciplines)."""
+    return kitsu().client.fetch_all("departments")
+
+
+def list_metadata_descriptors(project_id: str) -> list:
+    """Custom-field definitions — Kitsu's **schema-as-data** for a project: name, data type, choices,
+    the `for_client` flag, and per-department visibility."""
+    return kitsu().project.all_metadata_descriptors(project_id)
+
+
+# =====================================================================================
+#  TYPED CONVENIENCE — structure / tasks / the review loop
+# =====================================================================================
+def list_assets(project_id: str) -> list:
+    """All assets in a project."""
+    return kitsu().asset.all_assets_for_project(project_id)
+
+
+def list_shots(project_id: str) -> list:
+    """All shots in a project."""
+    return kitsu().shot.all_shots_for_project(project_id)
+
+
+def list_sequences(project_id: str) -> list:
+    """All sequences in a project."""
+    return kitsu().shot.all_sequences_for_project(project_id)
+
+
+def list_tasks(entity_id: str) -> list:
+    """All tasks on an entity (a shot or an asset)."""
+    return kitsu().client.fetch_all("tasks", {"entity_id": entity_id})
+
+
+def new_asset(project_id: str, asset_type: str, name: str, description: str = "") -> dict:
+    """Create an asset. `asset_type` is an asset-type **name or id** (names are resolved for you)."""
+    k = kitsu()
+    at = asset_type
+    if isinstance(asset_type, str):
+        at = next((t for t in k.asset.all_asset_types()
+                   if asset_type in (t.get("id"), t.get("name"))), asset_type)
+    return k.asset.new_asset(project_id, at, name, description=description)
+
+
+def new_shot(project_id: str, sequence_id: str, name: str, nb_frames: int = None) -> dict:
+    """Create a shot under a sequence."""
+    return kitsu().shot.new_shot(project_id, sequence_id, name, nb_frames=nb_frames)
+
+
+def set_task_status(task_id: str, status: str, comment: str = "") -> dict:
+    """Set a task's status by posting a comment — the Kitsu review loop. `status` is a status
+    name or short_name (e.g. "wip","done","retake","wfa"); `comment` is optional text."""
+    k = kitsu()
+    statuses = k.task.all_task_statuses()
+    st = next((s for s in statuses
+               if status.lower() in (s.get("short_name", "").lower(), s.get("name", "").lower())), None)
+    if st is None:
+        return {"error": "unknown status %r" % status,
+                "available": [s.get("short_name") for s in statuses]}
+    return k.task.add_comment(task_id, st, comment)
+
+
+def whoami() -> dict:
+    """The authenticated Kitsu user + host (validates the connection)."""
+    k = kitsu()
+    try:
+        u = k.client.get_current_user()
+    except Exception as e:
+        u = {"error": str(e)}
+    return {"host": _env("KITSU_URL"), "user": u}
+
+
+# ---- register every function above as an MCP tool -----------------------------------------
+for _fn in (get, create, update, delete,
+            list_projects, list_asset_types, list_task_types, list_task_statuses,
+            list_departments, list_metadata_descriptors,
+            list_assets, list_shots, list_sequences, list_tasks,
+            new_asset, new_shot, set_task_status, whoami):
+    mcp.tool(_fn)
+
+
+if __name__ == "__main__":
+    mcp.run()
