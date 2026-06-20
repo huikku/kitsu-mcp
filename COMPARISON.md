@@ -73,16 +73,26 @@ Each platform ships a different status set, so migration has to translate. The m
 |---|---|
 | Project / Sequence / Shot / Asset / Task structure | ✅ all directions |
 | Task **statuses** (mapped per §3) | ✅ (lossy into ftrack, per above) |
-| **Casting** (asset→shot) | ✅ on SG ↔ Kitsu; ❌ via ftrack |
+| **Casting** (asset→shot) | ✅ SG ↔ Kitsu; ❌ via ftrack (no casting model) |
 | Frame ranges / cut durations | ✅ (where the field exists) |
-| **Media / thumbnails / preview movies** | ❌ not yet |
-| **Notes / comments / review history** | ❌ not yet |
+| **Thumbnails** (entity images) | ✅ SG → Kitsu (downloaded from source host → uploaded to target); ftrack via `set_thumbnail` |
+| **Versions** (review media) | ✅ SG → Kitsu (image media carried onto a task as a preview); ftrack AssetVersion+Component not yet |
+| **Notes / comments** | ✅ SG → Kitsu (note → task comment) |
+| **Preview *movies*** | ⚠️ tooling exists (`upload_preview`/`download_preview`) but **untested** — POFA has no movies |
+| **Publishes** (PublishedFile, paths/deps) | ⚠️ buildable, **no test data** — POFA has 0 published files |
 | **Custom fields / metadata-descriptors** | ❌ not yet |
-| **Time logs, Versions / Publishes** | ❌ not yet |
+| **Time logs** | ❌ not yet |
 
-> **Scope note:** the cross-tracker tests were run on representative *slices* (a sequence + a few shots /
-> assets / tasks), not full-scale projects. The structural + status + casting mechanics are proven in every
-> direction; media/notes/custom-field carry-over is future work.
+> **How media moves:** there is no shared storage — a thumbnail/version is **downloaded from the source
+> tracker's host and re-uploaded to the target's host** (`download_thumbnail`/`download_preview` →
+> `upload`/`upload_preview`). Small media (thumbnails, preview images/movies) round-trips this way. **Heavy
+> publishes** (EXRs, caches, scene files) live on studio storage referenced by path/URL — migrating those
+> means copying file *references* (or bytes over a reachable mount), a storage decision per deployment.
+>
+> **Proven (SG → Kitsu, verified by read-back):** structure + statuses + casting + thumbnails + version
+> media + notes, on representative *slices* (not yet full-scale 422-shot runs). The ftrack edges carry
+> structure + statuses today; ftrack **version media** (Component encoding) and **publishes** are the next
+> build.
 
 ---
 *Part of the tracker-MCP trio: [shotgrid-mcp](https://github.com/huikku/shotgrid-mcp) ·
