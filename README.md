@@ -11,7 +11,7 @@ and the official **[Gazu](https://github.com/cgwire/gazu)** SDK.
 
 Part of a small **tracker-MCP trio** — see [Migrating projects between platforms](#migrating-projects-between-platforms).
 
-## The 26 tools
+## The 28 tools
 **Generic power tools (full reach over the Zou REST API):**
 - `get` — GET any Zou route (the escape hatch)
 - `create` · `update` · `delete` — write to any Zou model collection
@@ -25,7 +25,7 @@ Part of a small **tracker-MCP trio** — see [Migrating projects between platfor
 **Schema & discovery (Kitsu is configurable — learn the site first):**
 - `list_projects`
 - `list_asset_types` · `list_task_types` · `list_task_statuses` (with workflow flags) · `list_departments`
-- `list_metadata_descriptors` — Kitsu's **schema-as-data** custom fields (`for_client` + per-department)
+- `list_metadata_descriptors` · `add_metadata_descriptor` · `set_metadata` — Kitsu's **schema-as-data** custom fields (`for_client` + per-department); define a field and set values (migration carries custom fields)
 
 **Typed convenience (structure, creation + the review loop):**
 - `list_assets` · `list_shots` · `list_sequences` · `list_tasks`

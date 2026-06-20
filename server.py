@@ -230,6 +230,31 @@ def set_casting(project_id: str, shot_id: str, asset_ids: list, dry_run: bool = 
     return kitsu().casting.update_shot_casting(project_id, shot_id, casting)
 
 
+def add_metadata_descriptor(project_id: str, name: str, entity_type: str = "Shot",
+                            data_type: str = "string", choices: list = None,
+                            for_client: bool = False, dry_run: bool = False) -> dict:
+    """Define a **custom field** (Kitsu metadata-descriptor / schema-as-data) on a project.
+    `entity_type` = "Shot"/"Asset"/…; `data_type` = "string"/"number"/"boolean"/"list"; `choices` for lists;
+    `for_client` exposes it to clients. Migration: recreate source custom-field definitions here, then
+    `set_metadata` the values."""
+    if dry_run:
+        return {"dry_run": True, "would": "add metadata descriptor", "name": name, "entity_type": entity_type}
+    return kitsu().project.add_metadata_descriptor(project_id, name, entity_type,
+                                                   data_type=data_type, choices=choices, for_client=for_client)
+
+
+def set_metadata(entity_id: str, field_name: str, value, dry_run: bool = False) -> dict:
+    """Set a **custom field value** on a shot/asset (merges into its `data`). The matching descriptor must
+    exist (see `add_metadata_descriptor`). Carries custom-field values INTO Kitsu during a migration."""
+    if dry_run:
+        return {"dry_run": True, "would": "set metadata", "entity_id": entity_id, field_name: value}
+    k = kitsu()
+    ent = k.client.fetch_one("entities", entity_id)
+    if ent and ent.get("entity_type_id") in {a["id"] for a in k.asset.all_asset_types()}:
+        return k.asset.update_asset_data(entity_id, {field_name: value})
+    return k.shot.update_shot_data(entity_id, {field_name: value})
+
+
 # =====================================================================================
 #  MEDIA / VERSIONS  (in Kitsu a "version" = a preview file [image/movie] on a task;
 #  an entity's thumbnail derives from a preview. These carry media in/out for migrations.)
@@ -288,6 +313,7 @@ for _fn in (get, create, update, delete, remove_project,
             list_departments, list_metadata_descriptors,
             list_assets, list_shots, list_sequences, list_tasks,
             new_project, new_sequence, new_asset, new_shot, new_task, set_task_status, set_casting,
+            add_metadata_descriptor, set_metadata,
             upload_preview, download_preview, list_previews, whoami):
     mcp.tool(_fn)
 
