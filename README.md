@@ -4,14 +4,14 @@ A **Model Context Protocol** server that gives LLM agents (Claude Desktop, Claud
 **[Kitsu](https://www.cg-wire.com/kitsu)** — CGWire's open-source production tracker — through its **Zou** API
 and the official **[Gazu](https://github.com/cgwire/gazu)** SDK.
 
-> **29 tools, one write family, a `dry_run` safety gate on every write.** Tested live against a self-hosted
+> **30 tools, one write family, a `dry_run` safety gate on every write.** Tested live against a self-hosted
 > Kitsu — including **whole-project** ShotGrid ↔ Kitsu and ftrack → Kitsu migrations carrying structure +
 > statuses + casting + thumbnails + **video version media (multiple versions)** + notes + **custom fields**,
 > verified by read-back and torn down with `remove_project`.
 
 Part of a small **tracker-MCP trio** — see [Migrating projects between platforms](#migrating-projects-between-platforms).
 
-## The 29 tools
+## The 30 tools
 **Generic power tools (full reach over the Zou REST API):**
 - `get` — GET any Zou route (the escape hatch)
 - `create` · `update` · `delete` — write to any Zou model collection
@@ -33,6 +33,7 @@ Part of a small **tracker-MCP trio** — see [Migrating projects between platfor
 - `new_project` · `new_sequence` · `new_asset` · `new_shot` · `new_task` (entity-aware type resolution)
 - `set_task_status` — post a comment that sets a task's status (the Kitsu review loop)
 - `set_casting` — cast assets into a shot (breakdown)
+- `project_summary` — a **normalized** project snapshot (counts + per-shot cast/status/thumbnail, canonical statuses) for cross-tracker verify/diff
 - `whoami`
 
 > The `new_*` + media + `set_casting` tools make Kitsu a viable **migration target** — read structure,

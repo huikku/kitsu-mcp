@@ -13,7 +13,7 @@ tests** (all six directions across the three trackers).
 | Platform | ShotGrid / Flow Production Tracking | ftrack Studio | Kitsu (CGWire) |
 | Backing SDK | `shotgun_api3` | `ftrack_api` | `gazu` → Zou REST |
 | Auth | script name + API key | API user + API key | email + password |
-| Tools | 15 | 30 | 29 |
+| Tools | 16 | 31 | 30 |
 | API shape | generic CRUD over a schema | generic query + CRUD over a schema | generic REST + typed helpers |
 | Write safety | `dry_run` on **every** write | `dry_run` on **every** write | `dry_run` on **every** write |
 | Entity ids | **integer** | **UUID string** | **UUID string** |

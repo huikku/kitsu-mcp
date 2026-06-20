@@ -435,6 +435,37 @@ def whoami() -> dict:
     return {"host": _env("KITSU_URL"), "user": u}
 
 
+# canonical status buckets — the shared vocabulary for cross-tracker diff/verify
+_CANON = {"todo": "todo", "wip": "wip", "done": "done", "wfa": "review", "approved": "approved",
+          "ready": "todo", "retake": "review", "neutral": "todo", "rejected": "todo"}
+
+
+def project_summary(project_id: str) -> dict:
+    """A **normalized snapshot** of a project for cross-tracker verify/diff: entity counts plus, per shot,
+    its cast, thumbnail flag, and per-task **canonical** status (todo/wip/done/review/approved). Every
+    tracker MCP emits the same shape, so two summaries can be diffed directly. Read-only."""
+    k = kitsu()
+    proj = k.client.fetch_one("projects", project_id)
+    seqs = k.shot.all_sequences_for_project(project_id)
+    assets = k.asset.all_assets_for_project(project_id)
+    shots = k.shot.all_shots_for_project(project_id)
+    tt = {t["id"]: t["name"] for t in k.task.all_task_types()}
+    st = {s["id"]: s["short_name"] for s in k.task.all_task_statuses()}
+    sm = {}
+    ntasks = 0
+    for s in shots:
+        cast = k.client.get("data/projects/%s/entities/%s/casting" % (project_id, s["id"]))
+        tasks = k.client.fetch_all("tasks", {"entity_id": s["id"]})
+        ntasks += len(tasks)
+        sm[s["name"]] = {"cast": sorted([c["asset_name"] for c in cast]) if isinstance(cast, list) else [],
+                         "thumbnail": bool(s.get("preview_file_id")),
+                         "tasks": {tt.get(t["task_type_id"]): _CANON.get(st.get(t["task_status_id"]),
+                                                                         st.get(t["task_status_id"])) for t in tasks}}
+    return {"tracker": "kitsu", "project": {"name": (proj or {}).get("name"), "id": project_id},
+            "counts": {"sequences": len(seqs), "assets": len(assets), "shots": len(shots), "tasks": ntasks},
+            "shots": sm, "assets": {a["name"]: {"thumbnail": bool(a.get("preview_file_id"))} for a in assets}}
+
+
 # ---- register every function above as an MCP tool -----------------------------------------
 for _fn in (get, create, update, delete, remove_project,
             list_projects, list_asset_types, list_task_types, list_task_statuses,
@@ -442,7 +473,7 @@ for _fn in (get, create, update, delete, remove_project,
             list_assets, list_shots, list_sequences, list_tasks,
             new_project, new_sequence, new_asset, new_shot, new_task, set_task_status, set_casting,
             add_metadata_descriptor, set_metadata,
-            upload_preview, download_preview, list_previews, log_time, whoami):
+            upload_preview, download_preview, list_previews, log_time, whoami, project_summary):
     mcp.tool(_fn)
 
 
