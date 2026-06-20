@@ -13,11 +13,18 @@ tests** (all six directions across the three trackers).
 | Platform | ShotGrid / Flow Production Tracking | ftrack Studio | Kitsu (CGWire) |
 | Backing SDK | `shotgun_api3` | `ftrack_api` | `gazu` → Zou REST |
 | Auth | script name + API key | API user + API key | email + password |
-| Tools | 15 | 28 | 22 |
+| Tools | 15 | 30 | 29 |
 | API shape | generic CRUD over a schema | generic query + CRUD over a schema | generic REST + typed helpers |
-| Write safety | `dry_run` on writes | `dry_run` on writes | `dry_run` on writes |
+| Write safety | `dry_run` on **every** write | `dry_run` on **every** write | `dry_run` on **every** write |
 | Entity ids | **integer** | **UUID string** | **UUID string** |
 | License | MIT | MIT | MIT |
+
+> **Dry-run has two levels** (on `create`/`update`/`delete`/`set_status`, kubectl-style): `dry_run="plan"`
+> = client-side echo (no server contact); `dry_run="preflight"` = a *real* dry run — resolves every
+> reference against live data, validates statuses against the schema, returns a before→after diff and an
+> `ok`/`would_fail` verdict, **writing nothing** (ftrack also stage-validates in its session, then rolls
+> back). Set `MCP_PLAN_LOG=/path.jsonl` and a whole dry-run migration writes a reviewable plan file. It's
+> high-confidence preflight, not transactional simulation — some errors only surface on the real commit.
 
 ## 2. Data-model mapping (how the concepts line up)
 | Concept | ShotGrid | ftrack | Kitsu |
