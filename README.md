@@ -122,3 +122,7 @@ Kitsu to prove the tracker-agnostic, agent-native approach.)
   **[`ftrack-mcp`](https://github.com/huikku/ftrack-mcp)**.
 
 MIT licensed.
+
+---
+
+Built by **John Huikku** · [alienrobot.com](https://alienrobot.com)
