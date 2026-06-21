@@ -11,7 +11,7 @@ and the official **[Gazu](https://github.com/cgwire/gazu)** SDK.
 > statuses + casting + thumbnails + **video version media (multiple versions)** + notes + **custom fields**,
 > verified by read-back and torn down with `remove_project`.
 
-Part of a small **tracker-MCP trio** — see [Migrating projects between platforms](#migrating-projects-between-platforms).
+Part of a small **tracker-MCP quartet** — see [Migrating projects between platforms](#migrating-projects-between-platforms).
 
 ## The 30 tools
 **Generic power tools (full reach over the Zou REST API):**
@@ -90,7 +90,7 @@ create("shots", {"project_id":"…","name":"sh010"}, dry_run=True)   # preview, 
 ```
 
 ## Migrating projects between platforms
-This is one of **three sibling tracker MCPs**, each exposing the **same shape** (generic CRUD + schema +
+This is one of **four sibling tracker MCPs**, each exposing the **same shape** (generic CRUD + schema +
 typed convenience, with a `dry_run` gate):
 
 | Tracker | MCP |
@@ -98,8 +98,9 @@ typed convenience, with a `dry_run` gate):
 | ShotGrid / Flow Production Tracking | [`huikku/shotgrid-mcp`](https://github.com/huikku/shotgrid-mcp) |
 | ftrack Studio | [`huikku/ftrack-mcp`](https://github.com/huikku/ftrack-mcp) |
 | **Kitsu (CGWire)** | this repo |
+| AYON (Ynput) | [`huikku/ayon-mcp`](https://github.com/huikku/ayon-mcp) |
 
-📊 **See [`COMPARISON.md`](COMPARISON.md)** for a side-by-side of the three trackers (data model, status
+📊 **See [`COMPARISON.md`](COMPARISON.md)** for a side-by-side of the four trackers (data model, status
 vocabularies) and the **migration incompatibilities** to know about (casting can't round-trip through
 ftrack; statuses must be mapped; Kitsu projects need `remove_project` to delete; heavy publish *bytes* stay
 on storage — only references carry).
@@ -107,7 +108,7 @@ on storage — only references carry).
 🧪 **See [`TESTING.md`](TESTING.md)** for how these servers are validated — live round-trip tests, two-level
 dry-run checks, and the cross-tracker migration matrix (including what is *not* yet covered, stated plainly).
 
-Because all three speak the same production model (Project → Sequence/Asset → Shot → Task → Version/Status)
+Because all four speak the same production model (Project → Sequence/Asset → Shot → Task → Version/Status)
 and present a uniform tool surface, **an agent with two of them loaded can migrate a project from one
 platform to another** — read the structure from the source tracker, map the schema, and recreate it in the
 target:
