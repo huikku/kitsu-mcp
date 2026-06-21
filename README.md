@@ -11,7 +11,7 @@ and the official **[Gazu](https://github.com/cgwire/gazu)** SDK.
 > statuses + casting + thumbnails + **video version media (multiple versions)** + notes + **custom fields**,
 > verified by read-back and torn down with `remove_project`.
 
-Part of a small **tracker-MCP quartet** — see [Migrating projects between platforms](#migrating-projects-between-platforms).
+Part of a small **tracker-MCP quintet** — see [Migrating projects between platforms](#migrating-projects-between-platforms).
 
 ## The 30 tools
 **Generic power tools (full reach over the Zou REST API):**
@@ -99,8 +99,9 @@ typed convenience, with a `dry_run` gate):
 | ftrack Studio | [`huikku/ftrack-mcp`](https://github.com/huikku/ftrack-mcp) |
 | **Kitsu (CGWire)** | this repo |
 | AYON (Ynput) | [`huikku/ayon-mcp`](https://github.com/huikku/ayon-mcp) |
+| NIM (NIM Labs) | [`huikku/nim-mcp`](https://github.com/huikku/nim-mcp) |
 
-📊 **See [`COMPARISON.md`](COMPARISON.md)** for a side-by-side of the four trackers (data model, status
+📊 **See [`COMPARISON.md`](COMPARISON.md)** for a side-by-side of the five trackers (data model, status
 vocabularies) and the **migration incompatibilities** to know about (casting can't round-trip through
 ftrack; statuses must be mapped; Kitsu projects need `remove_project` to delete; heavy publish *bytes* stay
 on storage — only references carry).
